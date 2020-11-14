@@ -2,7 +2,6 @@ import threading
 from tkinter import Label, Button, Spinbox, StringVar, OptionMenu, Checkbutton, IntVar
 
 import cv2
-import imutils
 from PIL import ImageTk, Image
 
 
@@ -25,6 +24,9 @@ class MainWindow:
         self.lbl4 = Label(win, text='Inverse Binary')
         self.lbl4.place(x=50, y=140)
 
+        self.lbl5 = Label(win, text='Contour Threshold')
+        self.lbl5.place(x=50, y=180)
+
         keys = list(self.algorithms.keys())
         variable = StringVar(self.window)
         variable.set(keys[0])
@@ -43,6 +45,9 @@ class MainWindow:
         self.inverseBinaryVariable = IntVar()
         self.inverseBinaryCheckbutton = Checkbutton(self.window, text="Enable", variable=self.inverseBinaryVariable)
         self.inverseBinaryCheckbutton.place(x=270, y=135)
+
+        self.contourThreshold = Spinbox(bd=3, values=[i for i in range(0, 9999)])
+        self.contourThreshold.place(x=270, y=180)
 
         self.btnStartCamera = Button(win, text='Start Camera', command=self.start_camera)
         self.btnStartCamera.place(x=50, y=200)
@@ -86,16 +91,10 @@ class MainWindow:
         ret, frame = self.cap.read()
 
         if frame.shape[0] != 480:
-            self.frame = imutils.resize(frame, width=640, height=480)
+            self.frame = cv2.resize(frame.copy(), (640, 480))
         else:
-            self.frame = frame
+            self.frame = frame.copy()
 
-        image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
-        image = Image.fromarray(image)
-        image = ImageTk.PhotoImage(image)
-
-        self.lblImage.configure(image=image)
-        self.lblImage.image = image
         if self.processEvent.isSet():
             algorithm = self.algorithms[self.currentAlgorithm]
             mask = algorithm.apply(frame)
@@ -118,11 +117,28 @@ class MainWindow:
             if self.inverseBinaryVariable.get():
                 mask = cv2.bitwise_not(mask)
 
+            mask = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)[1]
             image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
             image = Image.fromarray(image)
             image = ImageTk.PhotoImage(image)
 
             self.lblMask.configure(image=image)
             self.lblMask.image = image
+            cnts, h = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contour_values = [cv2.contourArea(c) for c in cnts]
+            maxim = max(contour_values, default=0)
+            try:
+                if maxim < int(self.contourThreshold.get()):
+                    h, w, _ = self.frame.shape
+                    self.frame = cv2.line(self.frame, (0, 0), (w, h), (0, 0, 255), 10)
+                    self.frame = cv2.line(self.frame, (0, h), (w, 0), (0, 0, 255), 10)
+
+                image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+                image = Image.fromarray(image)
+                image = ImageTk.PhotoImage(image)
+                self.lblImage.configure(image=image)
+                self.lblImage.image = image
+            except ValueError:
+                pass
         if not self.cameraEvent.isSet():
             self.window.after(30, self.video_loop)
