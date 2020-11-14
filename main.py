@@ -13,7 +13,10 @@ algorithms = {
     "MOG": cv2.bgsegm.createBackgroundSubtractorMOG(),
     "MOG2": cv2.createBackgroundSubtractorMOG2(),
     "KNN": cv2.createBackgroundSubtractorKNN(),
-    "CNT": cv2.bgsegm.createBackgroundSubtractorCNT()
+    "CNT": cv2.bgsegm.createBackgroundSubtractorCNT(),
+    "GMG": cv2.bgsegm.createBackgroundSubtractorGMG(),
+    "LSBP": cv2.bgsegm.createBackgroundSubtractorLSBP(),
+    "GSOC": cv2.bgsegm.createBackgroundSubtractorGSOC()
 }
 
 window = Tk()

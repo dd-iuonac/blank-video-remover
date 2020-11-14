@@ -1,5 +1,5 @@
 import threading
-from tkinter import Label, Button, Spinbox, StringVar, OptionMenu
+from tkinter import Label, Button, Spinbox, StringVar, OptionMenu, Checkbutton, IntVar
 
 import cv2
 import imutils
@@ -17,10 +17,13 @@ class MainWindow:
         self.lbl1.place(x=50, y=20)
 
         self.lbl2 = Label(win, text='Median Blur Kernel')
-        self.lbl2.place(x=50, y=70)
+        self.lbl2.place(x=50, y=60)
 
         self.lbl3 = Label(win, text='Opening Kernel')
-        self.lbl3.place(x=50, y=140)
+        self.lbl3.place(x=50, y=100)
+
+        self.lbl4 = Label(win, text='Inverse Binary')
+        self.lbl4.place(x=50, y=140)
 
         keys = list(self.algorithms.keys())
         variable = StringVar(self.window)
@@ -32,10 +35,14 @@ class MainWindow:
         values = [i for i in range(1, 99, 2)]
         values.insert(0, 0)
         self.medianBlurKernel = Spinbox(bd=3, values=values)
-        self.medianBlurKernel.place(x=270, y=70)
+        self.medianBlurKernel.place(x=270, y=60)
 
         self.openKernel = Spinbox(bd=3, values=values)
-        self.openKernel.place(x=270, y=140)
+        self.openKernel.place(x=270, y=100)
+
+        self.inverseBinaryVariable = IntVar()
+        self.inverseBinaryCheckbutton = Checkbutton(self.window, text="Enable", variable=self.inverseBinaryVariable)
+        self.inverseBinaryCheckbutton.place(x=270, y=135)
 
         self.btnStartCamera = Button(win, text='Start Camera', command=self.start_camera)
         self.btnStartCamera.place(x=50, y=200)
@@ -107,7 +114,9 @@ class MainWindow:
                     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
             except ValueError:
                 pass
-            mask = cv2.bitwise_not(mask)
+
+            if self.inverseBinaryVariable.get():
+                mask = cv2.bitwise_not(mask)
 
             image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
             image = Image.fromarray(image)
