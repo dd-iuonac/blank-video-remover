@@ -2,8 +2,8 @@ from tkinter import Tk
 
 import cv2
 
-from algorithms import FrameDifferenceAlgorithm
-from main_window import MainWindow
+from src.algorithms import FrameDifferenceAlgorithm
+from src.main_window import MainWindow
 
 cap = cv2.VideoCapture(0)
 _, frame = cap.read()

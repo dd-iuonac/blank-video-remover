@@ -40,9 +40,8 @@ class MainWindow:
         self.btnStartCamera = Button(win, text='Start Camera', command=self.start_camera)
         self.btnStartCamera.place(x=50, y=200)
 
-        self.btnStartProcess = Button(win, text='Process')
+        self.btnStartProcess = Button(win, text='Process', command=self.start_process)
         self.btnStartProcess.place(x=200, y=200)
-        self.btnStartProcess.bind('<Button-1>', self.start_process)
 
         image = Image.new('RGB', (640, 480), (0, 0, 0))
         image = ImageTk.PhotoImage(image)
@@ -56,21 +55,25 @@ class MainWindow:
         # Threading
         self.cap = cap
         self.frame = None
-        self.stopEvent = threading.Event()
-        self.stopEvent.set()
+        self.processEvent = threading.Event()
+        self.cameraEvent = threading.Event()
+        self.cameraEvent.set()
 
     def on_algorithm_changed(self, algorithm):
         self.currentAlgorithm = algorithm
 
     def start_process(self):
-        pass
+        if self.processEvent.isSet():
+            self.processEvent.clear()
+        else:
+            self.processEvent.set()
 
     def start_camera(self):
-        if self.stopEvent.isSet():
-            self.stopEvent.clear()
+        if self.cameraEvent.isSet():
+            self.cameraEvent.clear()
             self.window.after(30, self.video_loop)
         else:
-            self.stopEvent.set()
+            self.cameraEvent.set()
 
     def video_loop(self):
         ret, frame = self.cap.read()
@@ -86,31 +89,31 @@ class MainWindow:
 
         self.lblImage.configure(image=image)
         self.lblImage.image = image
+        if self.processEvent.isSet():
+            algorithm = self.algorithms[self.currentAlgorithm]
+            mask = algorithm.apply(frame)
 
-        algorithm = self.algorithms[self.currentAlgorithm]
-        mask = algorithm.apply(frame)
+            try:
+                median_kernel = int(self.medianBlurKernel.get())
+                if median_kernel % 2 == 1:
+                    mask = cv2.medianBlur(mask, median_kernel)
+            except ValueError:
+                pass
 
-        try:
-            median_kernel = int(self.medianBlurKernel.get())
-            if median_kernel % 2 == 1:
-                mask = cv2.medianBlur(mask, median_kernel)
-        except ValueError:
-            pass
+            try:
+                open_kernel = int(self.openKernel.get())
+                if open_kernel > 0:
+                    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_kernel, open_kernel))
+                    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            except ValueError:
+                pass
+            mask = cv2.bitwise_not(mask)
 
-        try:
-            open_kernel = int(self.openKernel.get())
-            if open_kernel > 0:
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_kernel, open_kernel))
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        except ValueError:
-            pass
-        mask = cv2.bitwise_not(mask)
+            image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+            image = Image.fromarray(image)
+            image = ImageTk.PhotoImage(image)
 
-        image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        image = Image.fromarray(image)
-        image = ImageTk.PhotoImage(image)
-
-        self.lblMask.configure(image=image)
-        self.lblMask.image = image
-        if not self.stopEvent.isSet():
+            self.lblMask.configure(image=image)
+            self.lblMask.image = image
+        if not self.cameraEvent.isSet():
             self.window.after(30, self.video_loop)
