@@ -1,4 +1,4 @@
-# blank-video-remover
+# Blank video remover
 Video surveillance - "blank sequences" removal.
 
 Prerequisites:
