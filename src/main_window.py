@@ -80,34 +80,26 @@ class MainWindow:
         else:
             self.frame = frame.copy()
 
+        try:
+            median_kernel = int(self.pwAlgorithmParameters.medianBlurKernel.get())
+        except ValueError:
+            median_kernel = 0
+        if median_kernel % 2 == 1:
+            frame = cv2.medianBlur(frame, median_kernel)
+
         algorithm = self.algorithms[self.pwAlgorithmParameters.currentAlgorithm]
         mask = algorithm.apply(frame)
 
-        try:
-            median_kernel = int(self.pwAlgorithmParameters.medianBlurKernel.get())
-            if median_kernel % 2 == 1:
-                mask = cv2.medianBlur(mask, median_kernel)
-        except ValueError:
-            pass
+        mask = cv2.threshold(mask, int(self.pwAlgorithmParameters.binaryThreshold.get()), 255, cv2.THRESH_BINARY)[1]
 
         try:
             open_kernel = int(self.pwAlgorithmParameters.openKernel.get())
-            if open_kernel > 0:
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_kernel, open_kernel))
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         except ValueError:
-            pass
+            open_kernel = 0
+        if open_kernel > 0:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_kernel, open_kernel))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 
-        if self.pwAlgorithmParameters.inverseBinaryVariable.get():
-            mask = cv2.bitwise_not(mask)
-
-        mask = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)[1]
-        image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        image = Image.fromarray(image)
-        image = ImageTk.PhotoImage(image)
-
-        self.lblMask.configure(image=image)
-        self.lblMask.image = image
         cnts, h = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contour_values = [cv2.contourArea(c) for c in cnts]
         maxim = max(contour_values, default=0)
@@ -123,10 +115,22 @@ class MainWindow:
         else:
             if self.out:
                 self.out.write(self.frame)
+
         image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
         image = ImageTk.PhotoImage(image)
         self.lblImage.configure(image=image)
         self.lblImage.image = image
+
+        if self.pwAlgorithmParameters.inverseBinaryVariable.get():
+            mask = cv2.bitwise_not(mask)
+
+        image = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+        image = Image.fromarray(image)
+        image = ImageTk.PhotoImage(image)
+
+        self.lblMask.configure(image=image)
+        self.lblMask.image = image
+
         if not self.cameraEvent.isSet():
             self.window.after(30, self.video_loop)

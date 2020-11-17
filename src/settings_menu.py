@@ -16,16 +16,6 @@ class SettingsMenu(Labelframe):
 
         self.btnStartCamera = Button(self, text='Start Camera')
         self.btnStartCamera.grid(row=1, column=2)
-        #
-        # self.btnStartProcess = Button(self, text='Process', command=self.start_process)
-        # self.btnStartProcess.grid(row=2, column=2)
-
-    #
-    # def start_process(self):
-    #     if self.processEvent.isSet():
-    #         self.processEvent.clear()
-    #     else:
-    #         self.processEvent.set()
 
     def on_browse(self):
         filename = filedialog.asksaveasfilename(title="Choose recording name",
