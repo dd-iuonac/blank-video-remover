@@ -56,9 +56,20 @@ class MainWindow:
 
     def on_camera_start(self, param):
         if self.cameraEvent.isSet():
+            if ".mp4" in self.pwSettingsMenu.lblOutputRecording['text']:
+                fourcc = cv2.VideoWriter_fourcc(*'MPEG')
+            else:
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            self.out = cv2.VideoWriter(self.pwSettingsMenu.lblOutputRecording['text'], fourcc, 20.0, (640, 480))
+            self.pwSettingsMenu.btnBrowse["state"] = "disabled"
+            self.pwSettingsMenu.btnStartCamera["text"] = "Stop Camera"
             self.cameraEvent.clear()
             self.window.after(30, self.video_loop)
         else:
+            if self.out:
+                self.out.release()
+            self.pwSettingsMenu.btnBrowse["state"] = "enable"
+            self.pwSettingsMenu.btnStartCamera["text"] = "Start Camera"
             self.cameraEvent.set()
 
     def video_loop(self):
@@ -101,17 +112,21 @@ class MainWindow:
         contour_values = [cv2.contourArea(c) for c in cnts]
         maxim = max(contour_values, default=0)
         try:
-            if maxim < int(self.pwAlgorithmParameters.contourThreshold.get()):
-                h, w, _ = self.frame.shape
-                self.frame = cv2.line(self.frame, (0, 0), (w, h), (0, 0, 255), 10)
-                self.frame = cv2.line(self.frame, (0, h), (w, 0), (0, 0, 255), 10)
-
-            image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
-            image = Image.fromarray(image)
-            image = ImageTk.PhotoImage(image)
-            self.lblImage.configure(image=image)
-            self.lblImage.image = image
+            threshold = int(self.pwAlgorithmParameters.contourThreshold.get())
         except ValueError:
-            pass
+            threshold = 0
+
+        if maxim < threshold:
+            h, w, _ = self.frame.shape
+            self.frame = cv2.line(self.frame, (0, 0), (w, h), (0, 0, 255), 10)
+            self.frame = cv2.line(self.frame, (0, h), (w, 0), (0, 0, 255), 10)
+        else:
+            if self.out:
+                self.out.write(self.frame)
+        image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+        image = ImageTk.PhotoImage(image)
+        self.lblImage.configure(image=image)
+        self.lblImage.image = image
         if not self.cameraEvent.isSet():
             self.window.after(30, self.video_loop)

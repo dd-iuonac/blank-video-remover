@@ -37,9 +37,11 @@ class AlgorithmParameters(Labelframe):
         self.inverseBinaryCheckbutton = Checkbutton(self, text="Enable", variable=self.inverseBinaryVariable)
         self.inverseBinaryCheckbutton.grid(row=3, column=1)
 
+        var_contour = StringVar(self)
+        var_contour.set("200")
         self.lbl5 = Label(self, text='Contour Threshold')
         self.lbl5.grid(row=4, column=0)
-        self.contourThreshold = Spinbox(self, bd=3, values=[i for i in range(0, 9999)])
+        self.contourThreshold = Spinbox(self, bd=3, from_=0, to=99999, textvariable=var_contour)
         self.contourThreshold.grid(row=4, column=1)
 
     def on_algorithm_changed(self, algorithm):
